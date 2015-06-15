@@ -17,6 +17,8 @@ light_yellow = (200,50,0)
 display_width = 800
 display_height = 600
 
+ground_height = 20
+
 gameDisplay = pygame.display.set_mode((display_width,display_height))
 pygame.display.set_caption("Tanks")
 
@@ -215,7 +217,32 @@ def barrier(xLocation,randomHeight,barrierWidth):
         pygame.display.update()
         clock.tick(60)'''
 
-def fireShell(xy,tankX,tankY,turPos,gunPower):
+def explosion(x,y,size = 50):
+    explode = True
+
+    while explode:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+        startPoint = x,y
+        colorChoices = [red,light_red,yellow,light_yellow]
+        magnitude = 1
+
+        while magnitude < size:
+            exploding_bit_x = x + random.randrange(-1*magnitude,magnitude)
+            exploding_bit_y = y + random.randrange(-1*magnitude,magnitude)
+
+            pygame.draw.circle(gameDisplay,colorChoices[random.randrange(0,4)],(exploding_bit_x,exploding_bit_y),random.randrange(1,5))
+            magnitude += 1
+            pygame.display.update()
+            clock.tick(100)
+
+            explode = False
+
+
+def fireShell(xy,tankX,tankY,turPos,gunPower,xLocation,barrierWidth,randomHeight):
 
     fire = True
     startingShell = list(xy)
@@ -231,6 +258,22 @@ def fireShell(xy,tankX,tankY,turPos,gunPower):
         startingShell[1] += int((((startingShell[0]-xy[0])*0.015/(gunPower/50))**2) - (turPos + turPos/(12-turPos)))
 
         if startingShell[1] > display_height:
+
+            hit_x = int((startingShell[0]*display_height)/startingShell[1])
+            hit_y = int(display_height)
+            explosion(hit_x,hit_y)
+            fire = False
+
+        check_x_1 = startingShell[0] <= xLocation + barrierWidth
+        check_x_2 = startingShell[0] >= xLocation
+
+        check_y_1 = startingShell[1] <= display_height
+        check_y_2 = startingShell[1] >= display_height - randomHeight
+
+        if check_x_1 and check_x_2 and check_y_1 and check_y_2:
+            hit_x = int((startingShell[0]))#*display_height)/startingShell[1])
+            hit_y = int(startingShell[1])
+            explosion(hit_x,hit_y)
             fire = False
 
         pygame.display.update()
@@ -263,9 +306,6 @@ def gameLoop():
     randomHeight = random.randrange(0.1*display_height , 0.6*display_height)
 
     while not gameExit:
-
-        gameDisplay.fill(white)
-        gun = tank(mainTankX,mainTankY,curTurPos)
 
         if gameOver == True:
             message_to_screen("Game over",black,-50,size = "large")
@@ -303,14 +343,12 @@ def gameLoop():
                 elif event.key == pygame.K_p:
                     pause()
                 elif event.key == pygame.K_SPACE:
-                    fireShell(gun,mainTankX,mainTankY,curTurPos,firePower)
+                    fireShell(gun,mainTankX,mainTankY,curTurPos,firePower,xLocation,barrierWidth,randomHeight)
                     #fireShell2(gun,mainTankX,mainTankY,curTurPos,firePower)
-
                 elif event.key == pygame.K_a:
                     powerChange = -1
                 elif event.key == pygame.K_d:
                     powerChange = 1
-
 
             elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
@@ -330,6 +368,9 @@ def gameLoop():
 
         if mainTankX - (tankWidth/2) < xLocation + barrierWidth:
             mainTankX += 5
+
+        gameDisplay.fill(white)
+        gun = tank(mainTankX,mainTankY,curTurPos)
 
         firePower += powerChange
         power(firePower)
